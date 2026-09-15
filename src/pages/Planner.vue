@@ -26,7 +26,6 @@ const route = useRoute();
 const spotStore = useSpotStore();
 const dayPlanStore = useDayPlanStore();
 const listEl = ref<HTMLElement>();
-const sortableRef = ref<Sortable>();
 const tripId = String(route.params.tripId);
 const dayIndex = Number(route.params.dayIndex || 1);
 // 只读取当天，避免进入编排页就创建空行程；真正落盘发生在排程成功后
@@ -42,19 +41,21 @@ const daySpots = computed(() => {
 });
 onMounted(() => {
   if (listEl.value) {
-    sortableRef.value = new Sortable(listEl.value, {
+    // 拖拽开始时记录被拖节点在原顺序中的后继节点；调整被拒绝时据此插回，向上/向下拖动都回到原位置
+    let dragNextSibling: Node | null = null;
+    new Sortable(listEl.value, {
       animation: 150,
+      onStart: (evt: SortableEvent) => {
+        dragNextSibling = evt.item.nextSibling;
+      },
       onEnd: (evt: SortableEvent) => {
         const from = evt.oldIndex ?? 0;
         const to = evt.newIndex ?? 0;
-        // store 拒绝（闭园/超预算）时状态未变，手动把 DOM 还原到拖拽前
-        if (!dayPlanStore.reorder(tripId, dayIndex, from, to) && evt.item) {
-          const parent = evt.item.parentElement;
-          if (parent) {
-            const reference = from >= parent.children.length ? null : parent.children[from];
-            parent.insertBefore(evt.item, reference);
-          }
+        // store 拒绝（闭园/超预算）时 state、时间线、localStorage 都未变，把被 Sortable 移动的 DOM 插回原锚点
+        if (!dayPlanStore.reorder(tripId, dayIndex, from, to) && evt.item.parentElement) {
+          evt.item.parentElement.insertBefore(evt.item, dragNextSibling);
         }
+        dragNextSibling = null;
       },
     });
   }
