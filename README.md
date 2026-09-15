@@ -9,6 +9,8 @@ pnpm dev
 
 访问地址：http://localhost:18417
 
+> 已在 `pnpm-workspace.yaml` 中通过 `allowBuilds` 预先批准 esbuild 的安装构建脚本，无缓存的新环境直接执行上面的命令即可，无需交互式运行 `pnpm approve-builds`。锁定版本以 `pnpm-lock.yaml` 为准。
+
 TripWeaver 是一款纯前端旅行规划应用，支持创建旅行、探索景点、编排每日行程、预算统计和分享预览。
 
 ## 主要功能
