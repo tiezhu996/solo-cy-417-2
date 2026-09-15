@@ -25,12 +25,12 @@ export const useDayPlanStore = defineStore('dayPlan', {
       }
       return day;
     },
-    // 添加景点与拖拽重排共用：先在候选副本上排程，闭园或预算任一不满足则整体放弃
+    // 添加景点与拖拽重排共用：先在候选副本上排程，闭园或预算任一不满足则整体放弃。
+    // orderedEntries 按新顺序携带每条记录各自的备注与交通，因此同一景点出现多次时不会互相覆盖。
     commitSchedule(
       tripId: string,
       dayIndex: number,
-      orderedSpotIds: string[],
-      metadata: Map<string, Pick<DayPlanItem, 'note' | 'transport'>>,
+      orderedEntries: ScheduleEntry[],
     ): boolean {
       const current = this.findDay(tripId, dayIndex);
       const candidateDay: DayPlan = current
@@ -43,14 +43,8 @@ export const useDayPlanStore = defineStore('dayPlan', {
             items: [],
           };
 
-      const entries: ScheduleEntry[] = orderedSpotIds.map((spotId) => ({
-        spot_id: spotId,
-        note: metadata.get(spotId)?.note ?? DEFAULT_NOTE,
-        transport: metadata.get(spotId)?.transport ?? DEFAULT_TRANSPORT,
-      }));
-
       const spotStore = useSpotStore();
-      const scheduled = buildSchedule(entries, spotStore.spots);
+      const scheduled = buildSchedule(orderedEntries, spotStore.spots);
       if (!scheduled.ok) {
         toast.fail(messages.scheduleAfterClose);
         return false;
@@ -76,25 +70,28 @@ export const useDayPlanStore = defineStore('dayPlan', {
     },
     addSpot(tripId: string, spotId: string, dayIndex = 1) {
       const day = this.findDay(tripId, dayIndex);
-      const ordered = [...(day?.items ?? []).map((item) => item.spot_id), spotId];
-      const metadata = new Map<string, Pick<DayPlanItem, 'note' | 'transport'>>(
-        (day?.items ?? []).map((item) => [item.spot_id, { note: item.note, transport: item.transport }]),
-      );
-      const ok = this.commitSchedule(tripId, dayIndex, ordered, metadata);
+      // 既有每条记录的备注与交通原样保留；新景点使用默认值，重复添加是独立的新记录
+      const entries: ScheduleEntry[] = [
+        ...(day?.items ?? []).map((item) => ({ spot_id: item.spot_id, note: item.note, transport: item.transport })),
+        { spot_id: spotId, note: DEFAULT_NOTE, transport: DEFAULT_TRANSPORT },
+      ];
+      const ok = this.commitSchedule(tripId, dayIndex, entries);
       if (ok) toast.ok(messages.spotAdded);
       return ok;
     },
     reorder(tripId: string, dayIndex: number, from: number, to: number) {
       const day = this.findDay(tripId, dayIndex);
       if (!day) return false;
-      const ordered = day.items.map((item) => item.spot_id);
-      const [moved] = ordered.splice(from, 1);
+      // 整条条目（spot_id + 备注 + 交通）一起移动，排程器只重算开始/结束时间
+      const entries: ScheduleEntry[] = day.items.map((item) => ({
+        spot_id: item.spot_id,
+        note: item.note,
+        transport: item.transport,
+      }));
+      const [moved] = entries.splice(from, 1);
       if (moved === undefined) return false;
-      ordered.splice(to, 0, moved);
-      const metadata = new Map<string, Pick<DayPlanItem, 'note' | 'transport'>>(
-        day.items.map((item) => [item.spot_id, { note: item.note, transport: item.transport }]),
-      );
-      return this.commitSchedule(tripId, dayIndex, ordered, metadata);
+      entries.splice(to, 0, moved);
+      return this.commitSchedule(tripId, dayIndex, entries);
     },
   },
 });

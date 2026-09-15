@@ -46,6 +46,7 @@ const suites = [
   '/tests/suites/persistence.test.ts',
   '/tests/suites/scheduler.test.ts',
   '/tests/suites/scheduleStore.test.ts',
+  '/tests/suites/duplicateItems.test.ts',
 ];
 
 // 顶层 test() 由 node:test 自动执行并在结束时汇总；await 其 Promise 后再关闭 Vite。
