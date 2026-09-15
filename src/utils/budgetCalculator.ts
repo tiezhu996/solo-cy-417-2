@@ -10,9 +10,18 @@ export function calcTripCost(dayPlans: DayPlan[], spots: Spot[]) {
   }, 0);
 }
 
-// 候选行程（含新增景点）总花费一旦超过预算即判定失败；仅调整顺序、总花费不变时不会触发
-export function candidateWithinBudget(trip: Trip, candidateDayPlans: DayPlan[], spots: Spot[]) {
-  return calcTripCost(candidateDayPlans, spots) <= trip.budget;
+// 仅当“本次调整新增的花费”使总花费越过预算时才判定失败；
+// 拖拽等不改变总花费的调整（即使行程本就处于超预算状态）不会被预算规则拒绝。
+export function candidateWithinBudget(
+  trip: Trip,
+  currentDayPlans: DayPlan[],
+  candidateDayPlans: DayPlan[],
+  spots: Spot[],
+) {
+  const candidateCost = calcTripCost(candidateDayPlans, spots);
+  const currentCost = calcTripCost(currentDayPlans, spots);
+  if (candidateCost <= currentCost) return true;
+  return candidateCost <= trip.budget;
 }
 
 export function budgetStatus(trip: Trip, dayPlans: DayPlan[], spots: Spot[]) {

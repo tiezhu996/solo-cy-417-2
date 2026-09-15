@@ -64,7 +64,7 @@ export const useDayPlanStore = defineStore('dayPlan', {
 
       const tripStore = useTripStore();
       const trip = tripStore.trips.find((item) => item.id === tripId);
-      if (trip && !candidateWithinBudget(trip, candidatePlans, spotStore.spots)) {
+      if (trip && !candidateWithinBudget(trip, this.dayPlans, candidatePlans, spotStore.spots)) {
         toast.fail(messages.scheduleOverBudget);
         return false;
       }
@@ -80,9 +80,9 @@ export const useDayPlanStore = defineStore('dayPlan', {
       const metadata = new Map<string, Pick<DayPlanItem, 'note' | 'transport'>>(
         (day?.items ?? []).map((item) => [item.spot_id, { note: item.note, transport: item.transport }]),
       );
-      if (this.commitSchedule(tripId, dayIndex, ordered, metadata)) {
-        toast.ok(messages.spotAdded);
-      }
+      const ok = this.commitSchedule(tripId, dayIndex, ordered, metadata);
+      if (ok) toast.ok(messages.spotAdded);
+      return ok;
     },
     reorder(tripId: string, dayIndex: number, from: number, to: number) {
       const day = this.findDay(tripId, dayIndex);

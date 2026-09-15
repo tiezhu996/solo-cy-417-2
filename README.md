@@ -9,6 +9,14 @@ pnpm dev
 
 访问地址：http://localhost:18417
 
+运行测试（无需额外安装测试框架，使用 Node 内置 node:test 经 Vite 转译 TS）：
+
+```bash
+pnpm test
+```
+
+测试通过内存 `localStorage` 底座驱动**真实**的 `saveLocal/loadLocal` 与各 api 保存回读链路，覆盖缓存损坏、版本不符、失效景点引用、重复项、开放窗口刚好容纳/溢出 1 分钟，以及闭园或超预算拒绝后 state 与已保存信封不变的回读一致性。
+
 > 已在 `pnpm-workspace.yaml` 中通过 `allowBuilds` 预先批准 esbuild 的安装构建脚本，无缓存的新环境直接执行上面的命令即可，无需交互式运行 `pnpm approve-builds`。锁定版本以 `pnpm-lock.yaml` 为准。
 
 TripWeaver 是一款纯前端旅行规划应用，支持创建旅行、探索景点、编排每日行程、预算统计和分享预览。
